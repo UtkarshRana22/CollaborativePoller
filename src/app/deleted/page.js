@@ -47,7 +47,7 @@ export default function DeletedPollsPage() {
 
       const { data, error: pollsError } = await supabase
         .from('deleted_polls')
-        .select('pollid, question, options, count, percentage, multiple, voters, created_at, deleted_at')
+        .select('pollid, question, options, count, percentage, multiple, voters, images, created_at, deleted_at')
         .in('pollid', ids)
         .order('deleted_at', { ascending: false });
 
@@ -133,6 +133,20 @@ export default function DeletedPollsPage() {
                   <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
                     Deleted {new Date(poll.deleted_at).toLocaleDateString()} · {total} vote{total === 1 ? '' : 's'}
                   </p>
+
+                  {poll.images?.length > 0 && (
+                    <div className={`mb-4 grid gap-2 ${poll.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                      {poll.images.map((url, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={url}
+                          src={url}
+                          alt={`Poll image ${i + 1}`}
+                          className="w-full max-h-48 rounded-lg object-cover border border-slate-100 dark:border-slate-700"
+                        />
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-2">
                     {poll.options.map((option, i) => {
