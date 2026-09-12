@@ -8,6 +8,7 @@ export default function Home() {
   const [polls, setPolls] = useState(undefined);
   const [pollsError, setPollsError] = useState(null);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
   const router = useRouter();
 
   useEffect(() => {
@@ -96,7 +97,7 @@ export default function Home() {
   }
 
   const trimmedSearch = search.trim().toLowerCase();
-  const filteredPolls = Array.isArray(polls)
+  const searchedPolls = Array.isArray(polls)
     ? trimmedSearch
       ? polls.filter(
           (poll) =>
@@ -105,6 +106,22 @@ export default function Home() {
         )
       : polls
     : polls;
+
+  const filteredPolls = Array.isArray(searchedPolls)
+    ? [...searchedPolls].sort((a, b) => {
+        switch (sortBy) {
+          case 'oldest':
+            return new Date(a.created_at) - new Date(b.created_at);
+          case 'most_voted':
+            return (b.voters ?? 0) - (a.voters ?? 0);
+          case 'least_voted':
+            return (a.voters ?? 0) - (b.voters ?? 0);
+          case 'newest':
+          default:
+            return new Date(b.created_at) - new Date(a.created_at);
+        }
+      })
+    : searchedPolls;
 
   if (user === undefined) {
     return (
@@ -157,23 +174,36 @@ export default function Home() {
         </div>
 
         {Array.isArray(polls) && polls.length > 0 && (
-          <div className="relative mb-6">
-            <svg
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="relative flex-1">
+              <svg
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search polls…"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20"
+              />
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-            </svg>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search polls…"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20"
-            />
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="most_voted">Most voted</option>
+              <option value="least_voted">Least voted</option>
+            </select>
           </div>
         )}
 

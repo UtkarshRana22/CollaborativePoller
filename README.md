@@ -31,6 +31,7 @@ In short: client-side checks in this app exist only for UX (instant feedback on 
 - **Soft delete** — deleting a poll archives its final question, options, and results into a `deleted_polls` table (rather than destroying the data outright), and the owner can review their deleted polls' results later from a dedicated page.
 - **Image uploads** — up to 4 images can be attached to a poll at creation time, stored in Supabase Storage and shown on both the feed and the poll's detail page.
 - **Search** — a search box on the home feed filters polls by question or option text.
+- **Sorting** — the home feed can be sorted by newest first, oldest first, most voted, or least voted.
 - **Responsive UI** — works down to phone width.
 - **Graceful states** — loading skeletons, empty states, and error banners for failed loads, plus client-side form validation on poll creation/editing (length limits, option count, uniqueness).
 - **Dark mode** — a theme toggle with the choice persisted and applied before first paint (no flash of the wrong theme).
@@ -48,7 +49,7 @@ In short: client-side checks in this app exist only for UX (instant feedback on 
 src/
   app/
     layout.js              root layout, theme init script
-    page.js                home feed — poll list, search, realtime subscription
+    page.js                home feed — poll list, search, sort, realtime subscription
     login/, signup/         auth pages
     new/                    poll creation (question, options, multiple toggle, image upload)
     poll/[pollid]/          poll detail — voting, owner edit/delete, realtime updates
