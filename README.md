@@ -6,6 +6,20 @@ A live, multi-user polling app built for the **GitHub Community SRM (GCSRM) Recr
 
 Users sign up, create polls with multiple options (single-choice or multi-select), vote in real time, and watch results update live across every open browser without a refresh — powered by Supabase Realtime.
 
+## Database-first design: RPCs + Row Level Security
+
+This app deliberately pushes the business logic into the database layer instead of the frontend.
+
+Every operation that mutates shared or cross-user state — casting a vote, editing a poll, deleting a poll — goes through a **Postgres `SECURITY DEFINER` function** (a remote procedure call, invoked from the client as `supabase.rpc('cast_vote', {...})` etc.), never a direct table `insert`/`update`/`delete` from the frontend. On top of that, **Row Level Security (RLS) is enabled on every table**, so even if a request bypassed the app entirely, Postgres itself refuses any write that isn't explicitly allowed by policy.
+
+**Why:** the frontend cannot be trusted. Anyone can open dev tools and call the Supabase client directly with arbitrary arguments, skipping whatever validation the React code does. If vote counting, ownership checks, or double-vote prevention lived in JavaScript, a user could vote twice, vote for a poll option that doesn't exist, or edit/delete someone else's poll just by calling the API differently. By moving that logic into RPC functions that run *inside* Postgres:
+
+- `cast_vote` verifies the caller is authenticated, blocks a second vote on a poll they've already voted on, enforces single- vs multi-select rules, validates option indexes, and recomputes `count[]`/`percentage[]` itself from the current row — the client only ever says *which options it wants to vote for*, never what the new totals should be.
+- `edit_poll` and `delete_poll` verify `auth.uid()` actually owns the poll before touching it, using the authenticated session Postgres itself derives — not anything the client claims.
+- RLS policies on `polls`, `users`, `deleted_polls`, and the `poll-images` storage bucket are the fallback net: they define exactly which rows/paths a given `auth.uid()` may read or write directly, so even a hand-crafted request can't reach data or actions it shouldn't.
+
+In short: client-side checks in this app exist only for UX (instant feedback on a form), while correctness and security are enforced entirely server-side, in a way the frontend has no ability to bypass.
+
 ## Features
 
 - **Auth** — email/password signup and login via Supabase Auth.
