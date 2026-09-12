@@ -5,12 +5,16 @@ import { supabase } from '@/lib/supabase';
 
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 10;
+const MAX_IMAGES = 4;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export default function NewPollPage() {
   const [user, setUser] = useState(undefined);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [multiple, setMultiple] = useState(false);
+  const [images, setImages] = useState([]); // File objects
+  const [imagePreviews, setImagePreviews] = useState([]); // object URLs
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -25,6 +29,14 @@ export default function NewPollPage() {
     });
   }, [router]);
 
+  // Clean up object URLs when they're replaced/unmounted.
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imagePreviews]);
+
   function updateOption(index, value) {
     setOptions((prev) => prev.map((opt, i) => (i === index ? value : opt)));
   }
@@ -37,6 +49,38 @@ export default function NewPollPage() {
   function removeOption(index) {
     if (options.length <= MIN_OPTIONS) return;
     setOptions((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleImagesChange(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ''; // allow picking the same file again later
+
+    setError(null);
+
+    const accepted = [];
+    for (const file of files) {
+      if (images.length + accepted.length >= MAX_IMAGES) break;
+      if (!file.type.startsWith('image/')) {
+        setError('Only image files are allowed.');
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        setError('Each image must be under 5MB.');
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    if (accepted.length === 0) return;
+
+    setImages((prev) => [...prev, ...accepted]);
+    setImagePreviews((prev) => [...prev, ...accepted.map((f) => URL.createObjectURL(f))]);
+  }
+
+  function removeImage(index) {
+    URL.revokeObjectURL(imagePreviews[index]);
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e) {
@@ -65,11 +109,38 @@ export default function NewPollPage() {
     }
 
     setLoading(true);
+
+    // Generate the poll's id up front so image paths can be scoped to it
+    // before the poll row itself exists.
+    const pollid = crypto.randomUUID();
+    const imageUrls = [];
+
+    for (let i = 0; i < images.length; i++) {
+      const file = images[i];
+      const ext = file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
+      const path = `${user.id}/${pollid}/${i}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('poll-images')
+        .upload(path, file, { contentType: file.type });
+
+      if (uploadError) {
+        setLoading(false);
+        setError(`Image upload failed: ${uploadError.message}`);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage.from('poll-images').getPublicUrl(path);
+      imageUrls.push(publicUrlData.publicUrl);
+    }
+
     const { error: insertError } = await supabase.from('polls').insert({
+      pollid,
       question: trimmedQuestion,
       uid: user.id,
       options: trimmedOptions,
       multiple,
+      images: imageUrls,
     });
     setLoading(false);
 
@@ -158,6 +229,44 @@ export default function NewPollPage() {
             />
             <span className="text-sm text-slate-700 dark:text-slate-300">Allow selecting multiple options</span>
           </label>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Images <span className="text-slate-400 dark:text-slate-500 font-normal">(optional, up to {MAX_IMAGES})</span>
+            </span>
+
+            {imagePreviews.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {imagePreviews.map((url, i) => (
+                  <div key={url} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Preview ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      aria-label={`Remove image ${i + 1}`}
+                      className="absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-black/60 text-white text-xs leading-none opacity-0 group-hover:opacity-100 transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {images.length < MAX_IMAGES && (
+              <label className="self-start cursor-pointer text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
+                + Add image{images.length > 0 ? 's' : ''}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImagesChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
 
           {error && (
             <p className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-3 py-2 text-sm text-red-700 dark:text-red-300">

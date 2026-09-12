@@ -27,7 +27,7 @@ export default function Home() {
     async function loadPolls() {
       const { data, error } = await supabase
         .from('polls')
-        .select('pollid, question, options, count, percentage, multiple, voters, created_at')
+        .select('pollid, question, options, count, percentage, multiple, voters, images, created_at')
         .order('created_at', { ascending: false });
 
       if (cancelled) return;
@@ -175,19 +175,29 @@ export default function Home() {
                 <li key={poll.pollid}>
                   <a
                     href={`/poll/${poll.pollid}`}
-                    className="block rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm transition hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md"
+                    className="flex items-start gap-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm transition hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <p className="font-medium text-slate-900 dark:text-slate-100">{poll.question}</p>
-                      {poll.multiple && (
-                        <span className="shrink-0 rounded-full bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-0.5 text-xs font-medium text-indigo-600 dark:text-indigo-300">
-                          Multiple choice
-                        </span>
-                      )}
+                    {poll.images?.[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={poll.images[0]}
+                        alt=""
+                        className="h-16 w-16 shrink-0 rounded-lg object-cover border border-slate-100 dark:border-slate-700"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-4">
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{poll.question}</p>
+                        {poll.multiple && (
+                          <span className="shrink-0 rounded-full bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-0.5 text-xs font-medium text-indigo-600 dark:text-indigo-300">
+                            Multiple choice
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        {poll.options.length} options · {total} vote{total === 1 ? '' : 's'}
+                      </p>
                     </div>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      {poll.options.length} options · {total} vote{total === 1 ? '' : 's'}
-                    </p>
                   </a>
                 </li>
               );

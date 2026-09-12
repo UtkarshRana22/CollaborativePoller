@@ -42,7 +42,7 @@ export default function PollDetailPage() {
   async function loadPoll() {
     const { data, error } = await supabase
       .from('polls')
-      .select('pollid, question, options, count, percentage, multiple, voters, uid, created_at')
+      .select('pollid, question, options, count, percentage, multiple, voters, images, uid, created_at')
       .eq('pollid', pollid)
       .maybeSingle();
 
@@ -362,12 +362,26 @@ export default function PollDetailPage() {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                 {total} vote{total === 1 ? '' : 's'}
                 {isOwner && ' · your poll'}
                 {!isOwner && hasVoted && ' · you voted'}
                 {canVote && poll.multiple && ' · pick one or more'}
               </p>
+
+              {poll.images?.length > 0 && (
+                <div className={`mb-6 grid gap-2 ${poll.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {poll.images.map((url, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={url}
+                      src={url}
+                      alt={`Poll image ${i + 1}`}
+                      className="w-full max-h-64 rounded-lg object-cover border border-slate-100 dark:border-slate-700"
+                    />
+                  ))}
+                </div>
+              )}
 
               <div className="flex flex-col gap-3">
                 {poll.options.map((option, i) => {
