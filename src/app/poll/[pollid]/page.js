@@ -42,7 +42,7 @@ export default function PollDetailPage() {
   async function loadPoll() {
     const { data, error } = await supabase
       .from('polls')
-      .select('pollid, question, options, count, percentage, multiple, uid, created_at')
+      .select('pollid, question, options, count, percentage, multiple, voters, uid, created_at')
       .eq('pollid', pollid)
       .maybeSingle();
 
@@ -227,7 +227,7 @@ export default function PollDetailPage() {
     setEditing(false);
   }
 
-  const total = poll ? (poll.count || []).reduce((sum, c) => sum + c, 0) : 0;
+  const total = poll ? poll.voters ?? 0 : 0;
   const isOwner = poll && user ? poll.uid === user.id : false;
   const canVote = poll && !isOwner && hasVoted === false;
 

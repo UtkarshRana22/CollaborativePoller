@@ -1,9 +1,6 @@
-// Plain browser client — session lives in localStorage. Every auth check
-// happens client-side now (see src/app/page.js), so we don't need the
-// cookie-syncing @supabase/ssr client anymore.
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl ="";
-const supabaseAnonKey = "";
+const supabaseUrl ="https://bltbrlengtnujwdmlfyc.supabase.co";
+const supabaseAnonKey = "sb_publishable_ffrggBnhX3WKKua5AZ6SIQ_a38ghnE3";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

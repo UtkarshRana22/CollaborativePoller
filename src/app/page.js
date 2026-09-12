@@ -27,7 +27,7 @@ export default function Home() {
     async function loadPolls() {
       const { data, error } = await supabase
         .from('polls')
-        .select('pollid, question, options, count, percentage, multiple, created_at')
+        .select('pollid, question, options, count, percentage, multiple, voters, created_at')
         .order('created_at', { ascending: false });
 
       if (cancelled) return;
@@ -91,7 +91,7 @@ export default function Home() {
   }
 
   function totalVotes(poll) {
-    return (poll.count || []).reduce((sum, c) => sum + c, 0);
+    return poll.voters ?? 0;
   }
 
   if (user === undefined) {
@@ -111,6 +111,12 @@ export default function Home() {
           </span>
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline text-sm text-slate-500 dark:text-slate-400">{user.email}</span>
+            <a
+              href="/deleted"
+              className="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition"
+            >
+              Deleted polls
+            </a>
             <button
               onClick={handleSignOut}
               className="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition"
